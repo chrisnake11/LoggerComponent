@@ -3,12 +3,17 @@
 
 std::ofstream Logger::ofs("log.txt", std::ios::app);
 
-Logger::Logger(): m_b_stop(false), m_max_length(1024) {
+Logger::Logger(): m_b_stop(false), m_max_length(1024), m_min_level(0) {
 
 	// open filestream
 	if (!ofs.is_open()) {
 		ofs.open("log.txt", std::ios::app);
 	}
+
+	// 初始化sinks
+	addSink(std::make_shared<FileSink>("log1.txt"));
+	addSink(std::make_shared<FileSink>("log2.txt"));
+	addSink(std::make_shared<FileSink>("log3.txt"));
 
 	// 启动一个线程，作为消费者，读取队列中的消息。
 	m_log_thread = std::thread([this]() {
@@ -26,12 +31,16 @@ Logger::Logger(): m_b_stop(false), m_max_length(1024) {
 			}
 
 			// 否则，继续读取队列中的消息（正常读取或者清空）
-			std::string m_log_message = m_message_queue.front();
+			LogMessage m_log_message = m_message_queue.front();
 			m_message_queue.pop_front();
+
+			// 将消息写入所有的日志输出接口
+			for(std::shared_ptr<ILogSink> sink : m_log_sinks) {
+				sink->log(m_log_message.level, m_log_message.message, m_log_message.timestamp);
+			}
 
 			// 执行写入
 			lock.unlock();
-			writeToFile(m_log_message);
 		}
 	});
 }
@@ -58,27 +67,36 @@ Logger::~Logger() {
 }
 
 // 生产者
-void Logger::pushToQueue(const std::string& message) {
+void Logger::pushToQueue(const LogMessage& message) {
 	std::unique_lock<std::mutex> lock(m_queue_mutex);
 	if (m_message_queue.size() >= m_max_length)
 		m_message_queue.pop_front(); // 将旧的消息删除。
 	m_message_queue.push_back(message);
-	std::cout << "push message " << message << std::endl;
+	std::cout << "push message " << message.message << std::endl;
 	lock.unlock();
 	m_cond.notify_one();
 }
 
-void Logger::writeToFile(const std::string& message) {
-	if (!ofs.is_open()) {
-		// 处理打开失败（如输出错误日志、抛出异常）
-		std::cout << "log.txt open failed" << std::endl;
-		return;
-	}
-	if (!(ofs << message << std::endl)) {
-		// 处理写入失败
-		std::cout << "log.txt load failed" << std::endl;
-	}
-	else {
-		std::cout << "write message " << message << std::endl;
-	}
+void Logger::addSink(std::shared_ptr<ILogSink> sink)
+{
+	std::unique_lock<std::mutex> lock(m_sinks_mutex);
+	m_log_sinks.emplace_back(std::move(sink));
 }
+
+void Logger::clearSinks()
+{
+	std::unique_lock<std::mutex> lock(m_sinks_mutex);
+	m_log_sinks.clear();
+}
+
+// 重载右值版本，避免不必要的拷贝
+void Logger::pushToQueue(const LogMessage&& message) {
+	std::unique_lock<std::mutex> lock(m_queue_mutex);
+	if (m_message_queue.size() >= m_max_length)
+		m_message_queue.pop_front(); // 将旧的消息删除。
+	m_message_queue.emplace_back(std::move(message));
+	std::cout << "push message " << message.message << std::endl;
+	lock.unlock();
+	m_cond.notify_one();
+}
+

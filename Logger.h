@@ -9,14 +9,11 @@
 #include <thread>
 #include <vector>
 #include <fmt/format.h>
+#include <chrono>
+#include "LogLevel.h"
+#include "ILogSink.h"
+#include "FileSink.h"
 
-// 将日志消息添加不同的级别
-enum class LogLevel {
-	DEBUG,
-	INFO,
-	WARNING,
-	ERROR,
-};
 
 // 辅助函数，将单个参数转换为字符串
 template<typename T>
@@ -25,6 +22,12 @@ std::string to_string_helper(T&& arg) {
 	oss << std::forward<T>(arg);
 	return oss.str();
 }
+
+struct LogMessage {
+	LogLevel level;
+	std::string message;
+	std::string timestamp;
+};
 
 /*
 	基于单例模式的日志多生产者单消费者的异步日志系统。
@@ -36,45 +39,75 @@ std::string to_string_helper(T&& arg) {
 class Logger : public Singleton<Logger> {
 	friend class Singleton<Logger>;
 public:
-	void pushToQueue(const std::string& message);
-	void writeToFile(const std::string& message);
 	~Logger();
 
 	// 记录日志消息，使用格式化字符串和参数列表。
 	template<typename... Args>
 	void log(LogLevel level, const std::string& format, Args&&... args);
 
+	virtual void setMinLogLevel(int level) {
+		m_min_level = level; 
+	}
+
 protected:
 	Logger();
 
 private:
 	static std::ofstream ofs;
+
+	// 将日志消息构成结构体添加到队列
+	void pushToQueue(const LogMessage&& message);
+	void pushToQueue(const LogMessage& message);
+
+	void addSink(std::shared_ptr<ILogSink> sink);
+	void clearSinks();
+
+
 	// 基于变长参数化模板的字符串格式输出函数。
 	// 按照格式化字符串和参数列表，并生成日志消息。
 	template<typename... Args>
 	std::string formatMessage(const std::string& format, Args&&...args);
 
+	std::string getCurrentTimeString() {
+		std::time_t now_time = std::time(nullptr);  // 获取当前时间戳
+		if (now_time == -1) {  // 处理time()可能的失败
+			return "Failed to get time";
+		}
+
+		std::tm tm_buf{};  // 初始化tm结构体（清零）
+		// 调用localtime_s：第一个参数是tm指针，第二个是time_t指针
+		errno_t err = localtime_s(&tm_buf, &now_time);
+		if (err != 0) {  // 检查错误（非0表示失败）
+			return "Failed to convert time";
+		}
+
+		char buffer[20];  // 足够存储"YYYY-MM-DD HH:MM:SS"
+		// 格式化时间到buffer
+		std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm_buf);
+		return std::string(buffer);
+	}
+
 	std::atomic<bool> m_b_stop;
 	std::condition_variable m_cond;
 	std::mutex m_queue_mutex;
-	std::deque<std::string> m_message_queue;
+	std::deque<LogMessage> m_message_queue;
 	std::thread m_log_thread;
 	const size_t m_max_length;
+	int m_min_level; // 最小日志级别
+
+	std::deque<std::shared_ptr<ILogSink>> m_log_sinks; // 日志输出策略接口的列表
+	std::mutex m_sinks_mutex; // 保护 m_log_sinks 访问的互斥锁
+
 };
 
 template<typename ...Args>
 inline void Logger::log(LogLevel level, const std::string& format, Args && ...args)
 {
-	std::string level_str;
-	// 根据日志级别设置前缀字符串
-	switch (level) {
-		case LogLevel::DEBUG: level_str = "[DEBUG] "; break;
-		case LogLevel::INFO: level_str = "[INFO] "; break;
-		case LogLevel::WARNING: level_str = "[WARNING] "; break;
-		case LogLevel::ERROR: level_str = "[ERROR] "; break;
-	}
-	// 拼接日志级别和格式化后的消息
-	pushToQueue(level_str + formatMessage(format, std::forward<Args>(args)...));
+	std::string timestamp = getCurrentTimeString();
+	std::string message = formatMessage(format, std::forward<Args>(args)...);
+
+	// 拼接日志级别和格式化后的消息,以及当前时间
+	pushToQueue(LogMessage{level, std::move(message), std::move(timestamp)});
 }
 
 template<typename ...Args>
