@@ -2,6 +2,7 @@
 #include "ILogSink.h"
 #include <fstream>
 #include <filesystem>
+#include <vector>
 
 class FileSink : public ILogSink {
 public:
@@ -11,8 +12,12 @@ public:
 	// 析构函数，负责关闭日志文件
 	~FileSink() override;
 
-	// 执行日志写入操作
+	// 执行单条日志写入操作
 	void log(LogLevel level, const std::string& message, const std::string& timestamp) override;
+
+	// 执行批量日志写入操作
+	void logBatch(const std::vector<LogMessage>& messages) override;
+
 
 private:
 	// 创建日志目录（如果不存在）

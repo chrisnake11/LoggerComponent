@@ -23,12 +23,6 @@ std::string to_string_helper(T&& arg) {
 	return oss.str();
 }
 
-struct LogMessage {
-	LogLevel level;
-	std::string message;
-	std::string timestamp;
-};
-
 /*
 	基于单例模式的日志多生产者单消费者的异步日志系统。
 	
@@ -46,22 +40,18 @@ public:
 	void log(LogLevel level, const std::string& format, Args&&... args);
 
 	virtual void setMinLogLevel(int level) {
-		m_min_level = level; 
+		m_min_level = level;
 	}
 
-protected:
+private:
 	Logger();
 
-private:
-	static std::ofstream ofs;
-
 	// 将日志消息构成结构体添加到队列
-	void pushToQueue(const LogMessage&& message);
 	void pushToQueue(const LogMessage& message);
+	void pushToQueue(LogMessage&& message);
 
 	void addSink(std::shared_ptr<ILogSink> sink);
 	void clearSinks();
-
 
 	// 基于变长参数化模板的字符串格式输出函数。
 	// 按照格式化字符串和参数列表，并生成日志消息。
@@ -97,6 +87,8 @@ private:
 
 	std::deque<std::shared_ptr<ILogSink>> m_log_sinks; // 日志输出策略接口的列表
 	std::mutex m_sinks_mutex; // 保护 m_log_sinks 访问的互斥锁
+
+	std::vector<LogMessage> m_message_buffer; // 用于批量处理的消息缓冲区
 
 };
 

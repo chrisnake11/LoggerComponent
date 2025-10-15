@@ -1,25 +1,18 @@
 #include "Logger.h"
 
-
-std::ofstream Logger::ofs("log.txt", std::ios::app);
-
 Logger::Logger(): m_b_stop(false), m_max_length(1024), m_min_level(0) {
-
-	// open filestream
-	if (!ofs.is_open()) {
-		ofs.open("log.txt", std::ios::app);
-	}
-
 	// 初始化sinks
-	addSink(std::make_shared<FileSink>("log1.txt"));
-	addSink(std::make_shared<FileSink>("log2.txt"));
-	addSink(std::make_shared<FileSink>("log3.txt"));
+	addSink(std::make_shared<FileSink>("log.txt"));
+
+	// 初始化消息队列
+	m_message_buffer.reserve(m_max_length);
 
 	// 启动一个线程，作为消费者，读取队列中的消息。
 	m_log_thread = std::thread([this]() {
 		while (true) {
 			std::unique_lock<std::mutex> lock(m_queue_mutex);
-			m_cond.wait(lock, [this]() {
+			// 等待条件变量，或者超时100ms
+			m_cond.wait_for(lock, std::chrono::milliseconds(100), [this]() {
 				// 当队列不为空，或者停止后继续（队列为空且没停止，则等待）
 				return !m_message_queue.empty() || m_b_stop;
 				}
@@ -30,17 +23,21 @@ Logger::Logger(): m_b_stop(false), m_max_length(1024), m_min_level(0) {
 				break;
 			}
 
-			// 否则，继续读取队列中的消息（正常读取或者清空）
-			LogMessage m_log_message = m_message_queue.front();
-			m_message_queue.pop_front();
-
-			// 将消息写入所有的日志输出接口
-			for(std::shared_ptr<ILogSink> sink : m_log_sinks) {
-				sink->log(m_log_message.level, m_log_message.message, m_log_message.timestamp);
+			// 将队列中的消息全部移动到缓冲区，减少锁持有时间
+			while (!m_message_queue.empty()) {
+				m_message_buffer.push_back(std::move(m_message_queue.front()));
+				m_message_queue.pop_front();
 			}
 
-			// 执行写入
+			// 解锁，允许生产者继续添加消息
 			lock.unlock();
+
+			// 将buffer缓冲区的消息，批量拷贝到所有的sink
+			for(std::shared_ptr<ILogSink> sink : m_log_sinks) {
+				sink->logBatch(m_message_buffer);
+			}
+
+			m_message_buffer.clear(); // 清空缓冲区，准备下一批消息
 		}
 	});
 }
@@ -58,11 +55,6 @@ Logger::~Logger() {
 	// 等待线程退出
 	if (m_log_thread.joinable()) {
 		m_log_thread.join();
-	}
-	// close ofstream
-	if (ofs.is_open()) {
-		ofs.flush();  // 确保写入落盘
-		ofs.close();
 	}
 }
 
@@ -90,12 +82,11 @@ void Logger::clearSinks()
 }
 
 // 重载右值版本，避免不必要的拷贝
-void Logger::pushToQueue(const LogMessage&& message) {
+void Logger::pushToQueue(LogMessage&& message) {
 	std::unique_lock<std::mutex> lock(m_queue_mutex);
 	if (m_message_queue.size() >= m_max_length)
 		m_message_queue.pop_front(); // 将旧的消息删除。
 	m_message_queue.emplace_back(std::move(message));
-	std::cout << "push message " << message.message << std::endl;
 	lock.unlock();
 	m_cond.notify_one();
 }

@@ -142,6 +142,9 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="log.txt" />
+    <Text Include="log1.txt" />
+    <Text Include="log2.txt" />
+    <Text Include="log3.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

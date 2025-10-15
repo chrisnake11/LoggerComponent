@@ -56,6 +56,31 @@ void FileSink::createLogDirectory() {
 
 }
 
+void FileSink::logBatch(const std::vector<LogMessage>& messages)
+{
+	// 如果文件关闭则直接返回
+	if (!m_ofs.is_open()) {
+		return;
+	}
+	// 输出数据到filestream中
+	if (m_ofs.is_open()) {
+		// 批量顺序写入
+		for (const auto& msg : messages) {
+			if(msg.level < m_min_level) {
+				continue;
+			}
+			
+			// 格式化写入数据
+			m_ofs << "[" << msg.timestamp << "]" << " "
+				<< getLevelStr(msg.level) << " "
+				<< msg.message << '\n';
+		}
+		
+		// 批量循环写入后，刷新缓冲区
+		m_ofs.flush();
+	}
+}
+
 void FileSink::log(LogLevel level, const std::string& message, const std::string& timestamp)
 {
 	// 如果文件关闭或者日志级别低于最小级别则直接返回
@@ -66,8 +91,6 @@ void FileSink::log(LogLevel level, const std::string& message, const std::string
 	if(m_ofs.is_open()) {
 		m_ofs << "[" << timestamp << "]" << " "
 			<< getLevelStr(level) << " "
-			<< message << std::endl;
+			<< message << '\n';
 	}
-	// 刷新缓冲区
-	m_ofs.flush();
 }
