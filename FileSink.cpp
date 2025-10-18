@@ -8,11 +8,14 @@ FileSink::FileSink(const std::string& file_path) : m_file_path(file_path)
 	if(!m_ofs.is_open()) {
 		throw std::runtime_error("Failed to open log file: " + m_file_path);
 	}
+	static char buffer[1024 * 128];
+	m_ofs.rdbuf()->pubsetbuf(buffer, sizeof(buffer));
 }
 
 FileSink::~FileSink()
 {
 	if(m_ofs.is_open()) {
+		m_ofs.flush();
 		m_ofs.close();
 	}
 }
@@ -62,6 +65,11 @@ void FileSink::logBatch(const std::vector<LogMessage>& messages)
 	if (!m_ofs.is_open()) {
 		return;
 	}
+
+	std::string batch_output;
+	// 默认单个消息128字节，预分配内存，减少分配次数
+	batch_output.reserve(128 * messages.size());
+
 	// 输出数据到filestream中
 	if (m_ofs.is_open()) {
 		// 批量顺序写入
@@ -70,14 +78,20 @@ void FileSink::logBatch(const std::vector<LogMessage>& messages)
 				continue;
 			}
 			
-			// 格式化写入数据
-			m_ofs << "[" << msg.timestamp << "]" << " "
-				<< getLevelStr(msg.level) << " "
-				<< msg.message << '\n';
+			// 拼接到字符串（会自动扩容，不会溢出）
+			batch_output += "[" + msg.timestamp + "] "
+				+ getLevelStr(msg.level) + " "
+				+ msg.message + '\n';
 		}
 		
-		// 批量循环写入后，刷新缓冲区
-		m_ofs.flush();
+		// 一次性写入文件
+		m_ofs << batch_output;
+
+		// 批量循环写入后，定期刷新缓冲区
+		if(++m_flush_count >= FLUSH_THRESHOLD) {
+			m_ofs.flush();
+			m_flush_count = 0;
+		}
 	}
 }
 

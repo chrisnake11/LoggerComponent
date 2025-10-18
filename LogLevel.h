@@ -7,9 +7,3 @@ enum class LogLevel {
 	WARNING,
 	ERROR,
 };
-
-struct LogMessage {
-	LogLevel level;
-	std::string message;
-	std::string timestamp;
-};

@@ -11,6 +11,7 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "LogLevel.h"
+#include "LogMessage.h"
 #include "ILogSink.h"
 #include "FileSink.h"
 
@@ -77,19 +78,36 @@ private:
 		return std::string(buffer);
 	}
 
-	std::atomic<bool> m_b_stop;
-	std::condition_variable m_cond;
-	std::mutex m_queue_mutex;
-	std::deque<LogMessage> m_message_queue;
+	// 单消费者线程
 	std::thread m_log_thread;
-	const size_t m_max_length;
+	
+	// Logger的配置
 	int m_min_level; // 最小日志级别
+	std::atomic<bool> m_b_stop;
 
+
+	// 交换缓冲区的互斥锁
+	std::mutex m_queue_mutex;
+
+	// 触发阈值
+	static std::size_t m_max_length;
+	
+	// 双缓冲容器
+	std::vector<LogMessage> m_producer_queue;
+	std::vector<LogMessage> m_consumer_queue; // 双缓冲队列
+
+	// 双缓冲指针
+	std::unique_ptr<std::vector<LogMessage>> m_producer_buffer;
+	std::unique_ptr<std::vector<LogMessage>> m_consumer_buffer;
+	std::atomic<bool> m_b_buffer; // 双缓冲队列标志
+
+	// 消息队列条件变量，用于通知消费者线程
+	std::condition_variable m_consumer_cond;
+	std::condition_variable m_producer_cond;
+	
+	// 日志输出策略接口的列表
 	std::deque<std::shared_ptr<ILogSink>> m_log_sinks; // 日志输出策略接口的列表
 	std::mutex m_sinks_mutex; // 保护 m_log_sinks 访问的互斥锁
-
-	std::vector<LogMessage> m_message_buffer; // 用于批量处理的消息缓冲区
-
 };
 
 template<typename ...Args>

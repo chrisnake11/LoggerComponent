@@ -6,7 +6,7 @@
 #include <chrono>
 int main() {
 	
-	int total = 100000;
+	int total = 1000000;
 	int thread_count = 10;
 	int per_thread_count = total / thread_count;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "ILogSink.h"
+#include "LogMessage.h"
 #include <fstream>
 #include <filesystem>
 #include <vector>
@@ -18,6 +19,7 @@ public:
 	// 执行批量日志写入操作
 	void logBatch(const std::vector<LogMessage>& messages) override;
 
+	static constexpr std::size_t FLUSH_THRESHOLD = 100; // 每写入100条日志刷新一次文件缓冲区
 
 private:
 	// 创建日志目录（如果不存在）
@@ -29,4 +31,6 @@ private:
 private:
 	std::string m_file_path;
 	std::ofstream m_ofs;
+	std::size_t m_flush_count = 0;
+	std::size_t m_file_sequence = 0;
 };
