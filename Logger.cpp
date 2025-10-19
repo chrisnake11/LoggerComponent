@@ -6,7 +6,6 @@ Logger::Logger(): m_b_stop(false), m_min_level(0) {
 	// 初始化sinks
 	addSink(std::make_shared<FileSink>("log.txt"));
 
-
 	// 初始化双缓冲指针
 	m_producer_buffer = std::make_unique<std::vector<LogMessage>>(m_producer_queue);
 	m_consumer_buffer = std::make_unique<std::vector<LogMessage>>(m_consumer_queue);
@@ -45,6 +44,7 @@ Logger::Logger(): m_b_stop(false), m_min_level(0) {
 				std::unique_lock<std::mutex> lock(m_sinks_mutex);
 				for (const auto& sink : m_log_sinks) {
 					if (sink) {
+						// 直接传递consumer buffer,在sink接口中进行处理
 						sink->logBatch(*m_consumer_buffer);
 					}
 				} 

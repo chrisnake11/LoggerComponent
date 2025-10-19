@@ -24,6 +24,12 @@
     <ClCompile Include="FileSink.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="NetworkSink.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AsioIOServicePool.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Singleton.h">
@@ -42,6 +48,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="LogMessage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkSink.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AsioIOServicePool.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

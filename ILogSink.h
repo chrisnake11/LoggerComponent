@@ -19,6 +19,6 @@ public:
 	}
 
 protected:
-	LogLevel m_min_level = LogLevel::DEBUG;
+	LogLevel m_min_level = LogLevel::LOG_DEBUG;
 };
 

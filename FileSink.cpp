@@ -23,10 +23,10 @@ FileSink::~FileSink()
 std::string FileSink::getLevelStr(LogLevel level)
 {
 	switch(level) {
-		case LogLevel::DEBUG: return "[DEBUG]";
-		case LogLevel::INFO: return "[INFO]";
-		case LogLevel::WARNING: return "[WARNING]";
-		case LogLevel::ERROR: return "[ERROR]";
+		case LogLevel::LOG_DEBUG: return "[DEBUG]";
+		case LogLevel::LOG_INFO: return "[INFO]";
+		case LogLevel::LOG_WARNING: return "[WARNING]";
+		case LogLevel::LOG_ERROR: return "[ERROR]";
 		default: return "[UNKNOWN]";
 	}
 }

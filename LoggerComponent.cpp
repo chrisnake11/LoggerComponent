@@ -19,7 +19,7 @@ int main() {
 			int start_index = t * per_thread_count;
 			int end_index = start_index + per_thread_count;
 			for (int i = start_index; i < end_index; i++) {
-				Logger::getInstance()->log(LogLevel::INFO, "Logging message number: {}", i);
+				Logger::getInstance()->log(LogLevel::LOG_INFO, "Logging message number: {}", i);
 			}
 		});
 	}

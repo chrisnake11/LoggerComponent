@@ -71,8 +71,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\dev\cpp\fmt-12.0.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\dev\cpp\fmt-12.0.0\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\dev\cpp\boost_1_86_0;D:\dev\cpp\fmt-12.0.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\dev\cpp\boost_1_86_0\libs;D:\dev\cpp\fmt-12.0.0\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -129,16 +129,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AsioIOServicePool.cpp" />
     <ClCompile Include="FileSink.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LoggerComponent.cpp" />
+    <ClCompile Include="NetworkSink.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AsioIOServicePool.h" />
     <ClInclude Include="FileSink.h" />
     <ClInclude Include="ILogSink.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LogLevel.h" />
     <ClInclude Include="LogMessage.h" />
+    <ClInclude Include="NetworkSink.h" />
     <ClInclude Include="Singleton.h" />
   </ItemGroup>
   <ItemGroup>
