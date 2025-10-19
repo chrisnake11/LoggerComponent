@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # 日志输出测试文件
-*.txt
+*log*.txt
 
 # User-specific files
 *.rsuser
