@@ -1,10 +1,15 @@
 #include "Logger.h"
-
+#include "FileSink.h"
+#include "NetworkSink.h"
 std::size_t Logger::m_max_length = 1024;
 
 Logger::Logger(): m_b_stop(false), m_min_level(0) {
 	// 初始化sinks
 	addSink(std::make_shared<FileSink>("log.txt"));
+
+	// 根据地址构建socket，并绑定到从AsioIOServicePool获取io_context
+	// io_context负责异步发送消息。
+	addSink(std::make_shared<NetworkSink>("127.0.0.1", 12345));
 
 	// 初始化双缓冲指针
 	m_producer_buffer = std::make_unique<std::vector<LogMessage>>(m_producer_queue);

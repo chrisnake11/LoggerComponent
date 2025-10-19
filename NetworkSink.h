@@ -13,6 +13,7 @@ public:
 	// 从AsioIOContextPool中获取io_context引用，实现异步日志发送
 	void log(LogLevel level, const std::string& message, const std::string& timestamp) override;
 
+	void logBatch(const std::vector<LogMessage>& messages) override;
 
 private:
 	// boost网络io库

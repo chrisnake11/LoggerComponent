@@ -1,6 +1,7 @@
 #include "NetworkSink.h"
 #include "AsioIOServicePool.h"
 
+// 将socket绑定到io_context上。
 NetworkSink::NetworkSink(const std::string& ip_address, int port)
 	: m_server_ip(ip_address), m_server_port(port), m_is_writing(false), m_io_context(AsioIOServicePool::getInstance()->GetIOService()), m_socket(m_io_context)
 
@@ -35,6 +36,11 @@ void NetworkSink::log(LogLevel level, const std::string& message, const std::str
 
 	// 异步发送日志消息
 	sendAsync(oss.str());
+}
+
+void NetworkSink::logBatch(const std::vector<LogMessage>& messages)
+{
+	std::cout << "NetworkSink::logBatch" << std::endl;
 }
 
 void NetworkSink::connectToServer(const std::string& ip_address, int port)

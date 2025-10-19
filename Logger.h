@@ -13,7 +13,6 @@
 #include "LogLevel.h"
 #include "LogMessage.h"
 #include "ILogSink.h"
-#include "FileSink.h"
 
 
 // 辅助函数，将单个参数转换为字符串
